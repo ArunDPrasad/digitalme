@@ -1,0 +1,72 @@
+.knowledge-section {
+  padding: 8rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.pillar-container {
+  display: grid;
+  grid-auto-flow: dense;
+  grid-template-columns: 1fr 1fr;
+  gap: 6rem;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .pillar-container {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+}
+
+.pillar-content h2 {
+  font-size: 3rem;
+  margin-bottom: 2rem;
+  color: #fff;
+}
+
+.pillar-content p {
+  font-size: 1.2rem;
+  line-height: 1.8;
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.pillar-accent {
+  width: 40px;
+  height: 4px;
+  background: var(--accent);
+  margin-bottom: 2rem;
+}
+
+.benefit-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.benefit-item {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.benefit-number {
+  font-family: var(--font-sora);
+  font-weight: 800;
+  color: var(--accent-gold);
+  font-size: 1.2rem;
+  opacity: 0.6;
+}
+
+.benefit-text h4 {
+  color: #eee;
+  margin-bottom: 0.4rem;
+}
+
+.benefit-text p {
+  font-size: 0.95rem;
+  color: #777;
+}
