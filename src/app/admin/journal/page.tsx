@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import "./journal.css";
@@ -86,24 +86,45 @@ function parseMarkdown(
 // Preset writing templates
 const TEMPLATES = [
   {
-    name: "Daily Sync",
-    title: "Daily Sync - " + new Date().toLocaleDateString(),
-    content: `# Daily Sync\n\n**Focus Area**:\n- [ ] Focus on core feature delivery\n\n**Key Progress**:\n- Started task implementation\n\n**Blockers & Risks**:\n- None today\n\n**Mindset & Vision Alignment**:\n- Keep the Next5 target clear. Today's code moves the needle.`,
-    tags: ["daily", "sync"],
+    name: "Daily Retrospective",
+    title: "Daily Review - " + new Date().toLocaleDateString(),
+    content: `# Daily Review\n\n**Focus Area**:\n- [ ] Main project deliverable focus\n\n**Wins of the Day**:\n- Solved critical setup issues\n\n**Blockers & Friction**:\n- None encountered\n\n**Next Action Items**:\n- [ ] Prep tomorrow's tasks`,
+    tags: ["daily", "review"],
   },
   {
-    name: "Venture Design",
-    title: "New Venture Concept",
-    content: `# Venture Design Spec\n\n**Core Concept**:\n- Describe the product concept here...\n\n**Target Audience**:\n- Who needs this?\n\n**Technical Architecture**:\n- Frameworks: Next.js, Supabase, Tailwind\n- Key APIs:\n\n**Action Items / Roadmap**:\n- [ ] Draft Figma design wireframes\n- [ ] Initialize Supabase DB tables\n- [ ] Build landing MVP page`,
-    tags: ["venture", "spec", "planning"],
+    name: "Feature Spec",
+    title: "Feature Specification",
+    content: `# Feature Spec\n\n**Problem Statement**:\n- What are we trying to solve?\n\n**Proposed Design**:\n- Clean, modern layout using Notion-style properties.\n\n**Success Criteria**:\n- [ ] Fast rendering\n- [ ] Smooth editor toggles`,
+    tags: ["engineering", "design"],
   },
   {
-    name: "Milestone Review",
-    title: "Milestone Retrospective",
-    content: `# Milestone Retrospective\n\n**Milestone Reached**:\n- Describe the milestone...\n\n**What Went Well**:\n- High speed development\n\n**What Failed / Learning Points**:\n- Need clearer scope definitions next time\n\n**Next Action Steps**:\n- [ ] Implement feedback iteration\n- [ ] Update public portfolio stats`,
-    tags: ["retro", "milestone"],
+    name: "Milestone Action Plan",
+    title: "Milestone Action Plan",
+    content: `# Milestone Action Plan\n\n**Goal Description**:\n- What is the milestone goal?\n\n**Key Action Checklist**:\n- [ ] Initialize repository structure\n- [ ] Wireframe critical layouts\n- [ ] Deploy staging build`,
+    tags: ["strategy", "planning"],
   },
 ];
+
+// Notion Emojis
+const EMOJIS = ["📝", "🚀", "💡", "🎯", "🧠", "💻", "📅", "📈", "🌿", "🛠️", "🔥", "🎨"];
+
+// Notion Covers
+const COVERS = [
+  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&q=80",
+  "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=1200&q=80",
+  "https://images.unsplash.com/photo-1618005198143-d36639c63148?w=1200&q=80"
+];
+
+// Helper to determine tag color deterministically
+function getTagColor(tagName: string): string {
+  const colors = ["gray", "orange", "blue", "green", "purple", "red", "pink"];
+  let hash = 0;
+  for (let i = 0; i < tagName.length; i++) {
+    hash = tagName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+}
 
 interface LinkItem {
   id: string;
@@ -123,6 +144,11 @@ export default function JournalDashboard() {
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [tagInput, setTagInput] = useState("");
 
+  // Notion metadata states
+  const [pageIcon, setPageIcon] = useState("📝");
+  const [pageCover, setPageCover] = useState("");
+  const [isFullWidth, setIsFullWidth] = useState(false);
+
   // URL Attachment Inputs
   const [urlInput, setUrlInput] = useState("");
   const [urlTitle, setUrlTitle] = useState("");
@@ -134,6 +160,10 @@ export default function JournalDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [user, setUser] = useState<any>(null);
+
+  // Popovers Toggles
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
 
   const router = useRouter();
   const supabase = createClient();
@@ -159,7 +189,6 @@ export default function JournalDashboard() {
     
     if (!error && data) {
       setEntries(data);
-      // Automatically select the first entry if none is selected
       if (data.length > 0 && !selectedId) {
         loadEntry(data[0]);
       }
@@ -175,14 +204,20 @@ export default function JournalDashboard() {
     // Parse links and metadata safely
     const metadata = entry.metadata || {};
     setLinks(metadata.links || []);
+    setPageIcon(metadata.icon || "📝");
+    setPageCover(metadata.cover || "");
+    setIsFullWidth(metadata.isFullWidth || false);
   };
 
   const startNewEntry = () => {
     setSelectedId(null);
-    setTitle("New Reflection");
+    setTitle("Untitled Page");
     setContent("");
     setTags([]);
     setLinks([]);
+    setPageIcon("📝");
+    setPageCover("");
+    setIsFullWidth(false);
   };
 
   const handleSave = async () => {
@@ -190,11 +225,14 @@ export default function JournalDashboard() {
     setSaveStatus("saving");
 
     const payload = {
-      title: title || "Untitled Reflection",
+      title: title || "Untitled Page",
       content,
       tags,
       metadata: {
         links,
+        icon: pageIcon,
+        cover: pageCover,
+        isFullWidth,
       },
       user_id: user.id,
     };
@@ -230,7 +268,7 @@ export default function JournalDashboard() {
   };
 
   const handleDeleteEntry = async () => {
-    if (!selectedId || !confirm("Are you sure you want to delete this entry?")) return;
+    if (!selectedId || !confirm("Are you sure you want to delete this page?")) return;
 
     const { error } = await supabase
       .from("journal_entries")
@@ -242,7 +280,7 @@ export default function JournalDashboard() {
       startNewEntry();
       fetchEntries();
     } else {
-      alert("Error deleting entry: " + error.message);
+      alert("Error deleting page: " + error.message);
     }
   };
 
@@ -268,7 +306,7 @@ export default function JournalDashboard() {
     const updatedContent = updatedLines.join("\n");
     setContent(updatedContent);
 
-    // If there is a selected ID, save it to the DB instantly for seamless interaction
+    // Save changes instantly
     if (selectedId && user) {
       setSaveStatus("saving");
       const { error } = await supabase
@@ -279,7 +317,7 @@ export default function JournalDashboard() {
       if (!error) {
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 1500);
-        // Refresh entry lists in background
+        // Refresh index
         const { data } = await supabase
           .from("journal_entries")
           .select("*")
@@ -291,12 +329,13 @@ export default function JournalDashboard() {
     }
   };
 
-  // Add tag
+  // Tags Actions
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && tagInput.trim()) {
       e.preventDefault();
-      if (!tags.includes(tagInput.trim().toLowerCase())) {
-        setTags([...tags, tagInput.trim().toLowerCase()]);
+      const newTag = tagInput.trim().toLowerCase();
+      if (!tags.includes(newTag)) {
+        setTags([...tags, newTag]);
       }
       setTagInput("");
     }
@@ -306,14 +345,14 @@ export default function JournalDashboard() {
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
-  // Load preset templates
+  // Templates Actions
   const handleLoadTemplate = (template: typeof TEMPLATES[0]) => {
     setTitle(template.title);
     setContent(template.content);
     setTags(template.tags);
   };
 
-  // Attach URL Cards
+  // URL Cards Attachments Actions
   const handleAddLink = () => {
     if (!urlInput.trim()) return;
 
@@ -331,7 +370,7 @@ export default function JournalDashboard() {
       id: crypto.randomUUID(),
       url: parsedUrl,
       title: urlTitle.trim() || domain,
-      description: urlDesc.trim() || "Resource bookmark reference.",
+      description: urlDesc.trim() || "Reference note.",
     };
 
     setLinks([...links, newLink]);
@@ -344,7 +383,7 @@ export default function JournalDashboard() {
     setLinks(links.filter(l => l.id !== linkId));
   };
 
-  // Filter entries based on search query
+  // Search filtering
   const filteredEntries = entries.filter((e) => {
     const query = searchQuery.toLowerCase();
     const matchesTitle = e.title?.toLowerCase().includes(query);
@@ -355,41 +394,45 @@ export default function JournalDashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-sm font-bold text-neutral-400">
+      <div className="min-h-screen bg-[#191919] flex items-center justify-center text-sm text-neutral-500">
         VERIFYING_IDENTITY...
       </div>
     );
   }
 
+  const selectedEntry = entries.find(e => e.id === selectedId);
+
   return (
     <main className="journal-dashboard animate-fade">
-      {/* Sidebar List */}
+      {/* Notion Sidebar */}
       <aside className={`journal-sidebar ${isSidebarOpen ? "" : "collapsed"}`}>
-        <div className="sidebar-brand">
-          <span>JOURNAL</span>
+        <div className="sidebar-header">
+          <div className="sidebar-brand-wrapper">
+            <span>📓 Notion Workspace</span>
+          </div>
           <button 
-            className="text-neutral-500 hover:text-white border-none bg-transparent cursor-pointer text-xs"
+            className="sidebar-btn-collapse"
             onClick={() => setIsSidebarOpen(false)}
           >
-            ◀ Collapse
+            ◀
           </button>
         </div>
 
         <button 
-          className="btn-control text-[10px] uppercase tracking-wider py-1 px-2 mb-2" 
+          className="sidebar-btn-action text-[11px] font-semibold" 
           onClick={() => router.push("/admin/dashboard")}
         >
-          ◀ Return to HUD
+          <span>◀</span> Return to Control Panel
         </button>
 
-        <button className="btn-control primary w-full text-center justify-center font-bold" onClick={startNewEntry}>
-          + New Entry
+        <button className="sidebar-btn-action text-white font-medium bg-[rgba(255,255,255,0.03)]" onClick={startNewEntry}>
+          <span>+</span> Add a Page
         </button>
 
-        <div className="search-container">
+        <div className="px-1">
           <input 
             type="text" 
-            placeholder="Search entries or tags..." 
+            placeholder="Quick Find page..." 
             className="search-input"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -397,35 +440,35 @@ export default function JournalDashboard() {
         </div>
 
         <div className="entries-list">
-          {filteredEntries.map((e) => (
-            <button
-              key={e.id}
-              className={`journal-card-link ${selectedId === e.id ? "active" : ""}`}
-              onClick={() => loadEntry(e)}
-            >
-              <div className="journal-card-date">
-                {new Date(e.created_at).toLocaleDateString()}
-              </div>
-              <div className="journal-card-title">{e.title || "Untitled"}</div>
-              <div className="journal-card-snippet">{e.content}</div>
-            </button>
-          ))}
+          {filteredEntries.map((e) => {
+            const icon = e.metadata?.icon || "📝";
+            return (
+              <button
+                key={e.id}
+                className={`journal-card-link ${selectedId === e.id ? "active" : ""}`}
+                onClick={() => loadEntry(e)}
+              >
+                <span className="entry-list-icon">{icon}</span>
+                <span className="entry-list-title-text">{e.title || "Untitled Page"}</span>
+              </button>
+            );
+          })}
           {filteredEntries.length === 0 && (
-            <div className="text-neutral-600 text-xs italic text-center py-8">
-              No entries found.
+            <div className="text-neutral-600 text-xs italic text-center py-6">
+              No pages found.
             </div>
           )}
         </div>
       </aside>
 
-      {/* Main Workspace */}
+      {/* Notion Page Workspace */}
       <section className="journal-main">
         {/* Workspace controls header */}
         <header className="workspace-header">
-          <div className="flex items-center gap-3">
+          <div className="workspace-header-left">
             {!isSidebarOpen && (
               <button 
-                className="btn-control text-xs" 
+                className="btn-notion-flat" 
                 onClick={() => setIsSidebarOpen(true)}
               >
                 Index ▶
@@ -433,195 +476,327 @@ export default function JournalDashboard() {
             )}
             <div className="save-notification">
               <span className={`status-indicator ${saveStatus}`} />
-              <span className="capitalize">{saveStatus === "idle" ? "All changes saved" : saveStatus + "..."}</span>
+              <span className="text-xs text-neutral-500 font-medium ml-1">
+                {saveStatus === "saving" ? "Saving..." : "All changes saved"}
+              </span>
             </div>
           </div>
 
-          <div className="workspace-actions">
-            {/* View layout selectors */}
-            <div className="mode-toggle">
-              <button 
-                className={`mode-btn ${layoutMode === "split" ? "active" : ""}`}
-                onClick={() => setLayoutMode("split")}
-              >
-                Split View
-              </button>
-              <button 
-                className={`mode-btn ${layoutMode === "canvas-editor" ? "active" : ""}`}
-                onClick={() => setLayoutMode("canvas-editor")}
-              >
-                Focus Editor
-              </button>
-              <button 
-                className={`mode-btn ${layoutMode === "canvas-preview" ? "active" : ""}`}
-                onClick={() => setLayoutMode("canvas-preview")}
-              >
-                Preview Mode
-              </button>
-            </div>
+          <div className="workspace-header-actions">
+            {/* View toggles */}
+            <button 
+              className={`btn-notion-flat ${layoutMode === "split" ? "primary" : ""}`}
+              onClick={() => setLayoutMode("split")}
+            >
+              Split View
+            </button>
+            <button 
+              className={`btn-notion-flat ${layoutMode === "canvas-editor" ? "primary" : ""}`}
+              onClick={() => setLayoutMode("canvas-editor")}
+            >
+              Focus Editor
+            </button>
+            <button 
+              className={`btn-notion-flat ${layoutMode === "canvas-preview" ? "primary" : ""}`}
+              onClick={() => setLayoutMode("canvas-preview")}
+            >
+              Preview Mode
+            </button>
 
-            <button className="btn-control primary" onClick={handleSave}>
-              Save Workspace
+            <span className="h-4 w-px bg-neutral-800 mx-1" />
+
+            <button 
+              className={`btn-notion-flat ${isFullWidth ? "primary" : ""}`}
+              onClick={() => setIsFullWidth(!isFullWidth)}
+            >
+              Full Width
+            </button>
+
+            <button className="btn-notion-flat primary" onClick={handleSave}>
+              Save
             </button>
 
             {selectedId && (
-              <button className="btn-control danger" onClick={handleDeleteEntry}>
+              <button className="btn-notion-flat danger" onClick={handleDeleteEntry}>
                 Delete
               </button>
             )}
           </div>
         </header>
 
-        {/* Panels */}
+        {/* Workspace Panels */}
         <div className={`workspace-panels canvas-${layoutMode}`}>
-          {/* EDITOR PANEL */}
+          {/* EDITOR CANVAS */}
           <div className="editor-panel">
-            {/* Template Selector Bar */}
-            <div className="templates-bar">
-              <span className="text-[10px] text-neutral-500 uppercase tracking-widest self-center mr-2">Templates:</span>
-              {TEMPLATES.map((tmpl) => (
-                <button
-                  key={tmpl.name}
-                  type="button"
-                  className="template-chip"
-                  onClick={() => handleLoadTemplate(tmpl)}
+            {/* Cover image header */}
+            {pageCover ? (
+              <div className="notion-cover-wrapper">
+                <img src={pageCover} alt="Page Cover" className="notion-cover-img" />
+                <div className="notion-cover-overlay">
+                  <button type="button" className="btn-notion-flat bg-[#252525]" onClick={() => setPageCover("")}>
+                    Remove Cover
+                  </button>
+                  <button type="button" className="btn-notion-flat bg-[#252525] ml-2" onClick={() => setShowCoverPicker(!showCoverPicker)}>
+                    Change Cover
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Notion Center Text Column */}
+            <div className={`notion-page-container ${isFullWidth ? "full-width" : "centered-width"}`}>
+              {/* Emoji overlapping Cover */}
+              <div className={`page-icon-wrapper ${pageCover ? "" : "no-cover"}`}>
+                <div 
+                  className="page-emoji-display"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 >
-                  {tmpl.name}
-                </button>
-              ))}
-            </div>
-
-            <input 
-              type="text" 
-              className="title-input" 
-              placeholder="Give your entry a title..." 
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-
-            {/* Tag pills manager */}
-            <div className="tags-manager">
-              {tags.map((t) => (
-                <span key={t} className="tag-pill">
-                  #{t}
-                  <button type="button" onClick={() => handleRemoveTag(t)}>×</button>
-                </span>
-              ))}
-              <input 
-                type="text"
-                className="tag-input"
-                placeholder="+ Add tag (press Enter)"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleAddTag}
-              />
-            </div>
-
-            <textarea 
-              className="content-textarea"
-              placeholder="What are we planning or building today? Use markdown headings (#) and tasks (- [ ] task) to structure your thoughts."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-
-            {/* URL Bookmark attachments */}
-            <div className="attachments-section">
-              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block mb-3">Linked Resources</span>
-              
-              <div className="url-input-container">
-                <input 
-                  type="text" 
-                  placeholder="Paste URL (e.g. github.com/user/repo)" 
-                  value={urlInput}
-                  onChange={(e) => setUrlInput(e.target.value)}
-                />
-                <input 
-                  type="text" 
-                  placeholder="Custom Link Title" 
-                  value={urlTitle}
-                  onChange={(e) => setUrlTitle(e.target.value)}
-                />
-                <input 
-                  type="text" 
-                  placeholder="Short note" 
-                  value={urlDesc}
-                  onChange={(e) => setUrlDesc(e.target.value)}
-                />
-                <button type="button" className="btn-control font-bold" onClick={handleAddLink}>
-                  Attach Link
-                </button>
-              </div>
-
-              <div className="links-grid">
-                {links.map((link) => (
-                  <div key={link.id} className="link-card">
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="link-card-title"
-                    >
-                      🔗 {link.title}
-                    </a>
-                    <span className="link-card-domain">
-                      {link.url}
-                    </span>
-                    {link.description && (
-                      <p className="link-card-desc">{link.description}</p>
-                    )}
-                    <button 
-                      type="button" 
-                      className="delete-link-btn" 
-                      onClick={() => handleRemoveLink(link.id)}
-                    >
-                      Remove
-                    </button>
+                  {pageIcon}
+                </div>
+                
+                {showEmojiPicker && (
+                  <div className="emoji-picker-popover">
+                    {EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="emoji-option"
+                        onClick={() => {
+                          setPageIcon(emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
                   </div>
+                )}
+              </div>
+
+              {/* Cover image trigger if none present */}
+              {!pageCover && (
+                <div className="mb-4 flex gap-2">
+                  <button 
+                    type="button" 
+                    className="btn-notion-flat text-xs bg-neutral-900 border border-neutral-800"
+                    onClick={() => setShowCoverPicker(!showCoverPicker)}
+                  >
+                    🎨 Add Cover
+                  </button>
+                </div>
+              )}
+
+              {showCoverPicker && (
+                <div className="cover-picker-popover">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest block mb-2">Select cover gradient</span>
+                  <div className="cover-picker-grid">
+                    {COVERS.map((covUrl, idx) => (
+                      <img
+                        key={idx}
+                        src={covUrl}
+                        alt={`Cover option ${idx}`}
+                        className="cover-thumbnail"
+                        onClick={() => {
+                          setPageCover(covUrl);
+                          setShowCoverPicker(false);
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <button 
+                    type="button" 
+                    className="btn-notion-flat text-xs mt-2 w-full justify-center bg-neutral-900"
+                    onClick={() => setShowCoverPicker(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+
+              {/* Templates select bar */}
+              <div className="notion-templates-bar">
+                <span className="text-[10px] text-neutral-500 uppercase tracking-widest self-center mr-2">Use template:</span>
+                {TEMPLATES.map((tmpl) => (
+                  <button
+                    key={tmpl.name}
+                    type="button"
+                    className="notion-template-btn"
+                    onClick={() => handleLoadTemplate(tmpl)}
+                  >
+                    {tmpl.name}
+                  </button>
                 ))}
               </div>
-            </div>
-          </div>
 
-          {/* PREVIEW PANEL */}
-          <div className="preview-panel">
-            <div className="border-b border-neutral-800 pb-4">
-              <div className="text-xs text-neutral-500 mb-1 uppercase tracking-widest font-semibold">PREVIEW</div>
-              <h1 className="text-2xl font-bold text-white mb-2">{title || "Untitled Entry"}</h1>
-              
-              <div className="flex flex-wrap gap-2">
-                {tags.map((t) => (
-                  <span key={t} className="text-xs text-neutral-500 bg-neutral-900 border border-neutral-800 rounded px-2 py-0.5">
-                    #{t}
-                  </span>
-                ))}
+              {/* Title input */}
+              <input 
+                type="text" 
+                className="notion-title-input" 
+                placeholder="Untitled Page" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+
+              {/* Notion Properties Database Panel */}
+              <div className="notion-properties-block">
+                {/* Date Property Row */}
+                <div className="property-row">
+                  <span className="property-label">📅 Created Time</span>
+                  <div className="property-value text-neutral-500">
+                    {selectedEntry ? new Date(selectedEntry.created_at).toLocaleString() : "Now"}
+                  </div>
+                </div>
+
+                {/* Tags Property Row */}
+                <div className="property-row">
+                  <span className="property-label">🏷️ Tags</span>
+                  <div className="property-value">
+                    {tags.map((t) => {
+                      const color = getTagColor(t);
+                      return (
+                        <span key={t} className={`notion-tag color-${color}`}>
+                          {t}
+                          <button 
+                            type="button" 
+                            className="notion-tag-btn-remove"
+                            onClick={() => handleRemoveTag(t)}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                    <input 
+                      type="text"
+                      className="notion-tag-input"
+                      placeholder="Type & press Enter..."
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleAddTag}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className="markdown-body">
-              {parseMarkdown(content, handleToggleCheckbox)}
-            </div>
+              {/* Main Content Area */}
+              <textarea 
+                className="notion-content-area"
+                placeholder="Press Enter to write thoughts, tasks (- [ ] task) and notes in markdown..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
 
-            {links.length > 0 && (
-              <div className="border-t border-neutral-900 pt-6 mt-6">
-                <h3 className="text-sm font-semibold text-neutral-400 mb-4 uppercase tracking-widest">Bookmarks & Specs</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Notion Reference Resources Drawer */}
+              <div className="notion-bookmarks-drawer">
+                <span className="text-[10px] text-neutral-500 uppercase tracking-widest block mb-3">Bookmarks & Attachments</span>
+                
+                <div className="notion-bookmark-add">
+                  <input 
+                    type="text" 
+                    className="flex-1"
+                    placeholder="URL (e.g. github.com)" 
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                  />
+                  <input 
+                    type="text" 
+                    className="w-1/4"
+                    placeholder="Label/Title" 
+                    value={urlTitle}
+                    onChange={(e) => setUrlTitle(e.target.value)}
+                  />
+                  <input 
+                    type="text" 
+                    className="w-1/3"
+                    placeholder="Note" 
+                    value={urlDesc}
+                    onChange={(e) => setUrlDesc(e.target.value)}
+                  />
+                  <button type="button" className="btn-notion-flat bg-neutral-900 border border-neutral-800" onClick={handleAddLink}>
+                    Attach
+                  </button>
+                </div>
+
+                <div className="notion-bookmarks-grid">
                   {links.map((link) => (
-                    <div key={link.id} className="link-card">
+                    <div key={link.id} className="notion-bookmark-card">
                       <a 
                         href={link.url} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="link-card-title"
+                        className="bookmark-title"
                       >
                         🔗 {link.title}
                       </a>
-                      <span className="link-card-domain">{link.url}</span>
-                      {link.description && <p className="link-card-desc">{link.description}</p>}
+                      <span className="bookmark-domain">{link.url}</span>
+                      {link.description && <p className="bookmark-desc">{link.description}</p>}
+                      <button 
+                        type="button" 
+                        className="btn-bookmark-delete" 
+                        onClick={() => handleRemoveLink(link.id)}
+                      >
+                        Remove
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* PREVIEW CANVAS */}
+          <div className="preview-panel">
+            {pageCover && (
+              <div className="notion-cover-wrapper">
+                <img src={pageCover} alt="Cover" className="notion-cover-img" />
+              </div>
             )}
+
+            <div className={`notion-page-container ${isFullWidth ? "full-width" : "centered-width"}`}>
+              <div className={`page-icon-wrapper ${pageCover ? "" : "no-cover"}`}>
+                <div className="page-emoji-display">{pageIcon}</div>
+              </div>
+
+              <div className="border-b border-neutral-900 pb-4 mb-6">
+                <h1 className="text-3xl font-bold text-white mb-2">{title || "Untitled Page"}</h1>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {tags.map((t) => {
+                    const color = getTagColor(t);
+                    return (
+                      <span key={t} className={`notion-tag color-${color}`}>
+                        {t}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="markdown-body">
+                {parseMarkdown(content, handleToggleCheckbox)}
+              </div>
+
+              {links.length > 0 && (
+                <div className="notion-bookmarks-drawer mt-10">
+                  <h3 className="text-xs font-semibold text-neutral-500 mb-4 uppercase tracking-widest">Linked Resources</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {links.map((link) => (
+                      <div key={link.id} className="notion-bookmark-card">
+                        <a 
+                          href={link.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="bookmark-title"
+                        >
+                          🔗 {link.title}
+                        </a>
+                        <span className="bookmark-domain">{link.url}</span>
+                        {link.description && <p className="bookmark-desc">{link.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
