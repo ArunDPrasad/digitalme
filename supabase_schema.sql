@@ -112,3 +112,8 @@ CREATE POLICY "Admin Update" ON storage.objects FOR UPDATE TO authenticated USIN
 
 DROP POLICY IF EXISTS "Admin Delete" ON storage.objects;
 CREATE POLICY "Admin Delete" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'profile-media');
+
+-- Migration: Add tags and metadata to journal_entries
+ALTER TABLE public.journal_entries ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}';
+ALTER TABLE public.journal_entries ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+
