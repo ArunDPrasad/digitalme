@@ -27,17 +27,15 @@
   font-family: var(--font-sora);
   letter-spacing: -0.05em;
   line-height: 1;
-  
+
   /* Brown/Marble Texture Effect */
-  background: linear-gradient(
-    45deg, 
-    #5c3a21 0%, 
-    #8b4513 20%, 
-    #d2691e 40%, 
-    #f4a460 60%, 
-    #8b4513 80%, 
-    #5c3a21 100%
-  );
+  background: linear-gradient(45deg,
+      #5c3a21 0%,
+      #8b4513 20%,
+      #d2691e 40%,
+      #f4a460 60%,
+      #8b4513 80%,
+      #5c3a21 100%);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
@@ -46,9 +44,17 @@
 }
 
 @keyframes marbleVein {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .profile-overlay-wrapper {
@@ -57,7 +63,8 @@
   margin: 0 auto;
   padding: 0 2rem;
   position: relative;
-  margin-top: -60px; /* Reduced overlap for tighter layout */
+  margin-top: -60px;
+  /* Reduced overlap for tighter layout */
   z-index: 10;
 }
 
@@ -92,8 +99,15 @@
 }
 
 @keyframes ringPulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.1); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.1);
+    opacity: 0;
+  }
 }
 
 .identity-content {
@@ -132,7 +146,7 @@
 .profile-role {
   color: #fff;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  /* margin-bottom: 0.75rem; */
 }
 
 .profile-bio-text {
