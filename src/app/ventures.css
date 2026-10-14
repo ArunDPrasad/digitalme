@@ -1,3 +1,24 @@
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.divider-line {
+  height: 1px;
+  background: #262626;
+  flex: 1;
+}
+
+.divider-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #737373;
+}
+
 .ventures-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));

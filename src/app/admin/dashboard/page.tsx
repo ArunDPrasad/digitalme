@@ -25,6 +25,10 @@ export default function DashboardHub() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
+  // Ventures State
+  const [ventures, setVentures] = useState<any[]>([]);
+  const [isLoadingVentures, setIsLoadingVentures] = useState(false);
+
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef<number>(0);
   const dragStartPercentY = useRef<number>(50);
@@ -41,6 +45,7 @@ export default function DashboardHub() {
       } else {
         setUser(user);
         fetchSettings();
+        fetchVentures();
       }
     };
     checkUser();
@@ -66,6 +71,31 @@ export default function DashboardHub() {
       const total = endDate - startDate;
       const progress = Math.min(Math.max(((now - startDate) / total) * 100, 0), 100);
       setSyncProgress(progress);
+    }
+  };
+
+  const fetchVentures = async () => {
+    setIsLoadingVentures(true);
+    const { data, error } = await supabase
+      .from("ventures")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setVentures(data);
+    }
+    setIsLoadingVentures(false);
+  };
+
+  const handleDeleteVenture = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to unpin/remove "${title}"?`)) return;
+
+    const { error } = await supabase.from("ventures").delete().eq("id", id);
+    if (!error) {
+      setVentures((prev) => prev.filter((v) => v.id !== id));
+    } else {
+      alert("Error removing venture: " + error.message);
     }
   };
 
@@ -354,17 +384,23 @@ export default function DashboardHub() {
               e.preventDefault();
               setIsSaving(true);
               const target = e.target as any;
+              const tagsArray = target.tags.value
+                ? target.tags.value.split(",").map((t: string) => t.trim()).filter(Boolean)
+                : [];
+
               const { error } = await supabase.from("ventures").insert({
                 title: target.title.value,
                 description: target.description.value,
-                tags: target.tags.value.split(",").map((t: string) => t.trim()),
+                tags: tagsArray,
                 link: target.link.value,
                 display_order: 0
               });
               if (!error) {
                 target.reset();
-                fetchSettings(); // Refresh ventures list (shared fetch logic can be optimized later)
+                await fetchVentures();
                 alert("New Venture Pinned to your Front View.");
+              } else {
+                alert("Error pinning venture: " + error.message);
               }
               setIsSaving(false);
             }}>
@@ -393,12 +429,69 @@ export default function DashboardHub() {
             </form>
 
             <div className="admin-card">
-              <h3>Currently Pinned Milestones</h3>
-              <p className="text-sm text-neutral-500 mb-8">Manage the visibility of your ventures.</p>
-              <div className="flex flex-col gap-4">
-                {/* List will be populated by a separate fetch if necessary, or shared state */}
-                <div className="text-xs text-neutral-500 italic">Navigate to your public homepage to verify current layout. Management of existing entries coming in next update.</div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="mb-1">Currently Pinned Milestones</h3>
+                  <p className="text-sm text-neutral-500">Manage live ventures shown on your public homepage.</p>
+                </div>
+                <span className="text-xs text-neutral-400 font-medium px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800">
+                  {ventures.length} {ventures.length === 1 ? "Venture" : "Ventures"}
+                </span>
               </div>
+
+              {isLoadingVentures ? (
+                <div className="text-xs text-neutral-500 py-6 text-center italic">Loading pinned milestones...</div>
+              ) : ventures.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {ventures.map((v) => (
+                    <div key={v.id} className="venture-admin-card">
+                      <div className="venture-admin-info">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-semibold text-white text-base">{v.title}</h4>
+                          {v.link && (
+                            <a
+                              href={v.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-accent hover:underline flex items-center gap-1"
+                            >
+                              🔗 Visit Project
+                            </a>
+                          )}
+                        </div>
+                        {v.description && (
+                          <p className="text-xs text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
+                            {v.description}
+                          </p>
+                        )}
+                        {v.tags && v.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {v.tags.map((tag: string) => (
+                              <span key={tag} className="venture-admin-tag">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="venture-admin-actions">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVenture(v.id, v.title)}
+                          className="btn-unpin-venture"
+                          title="Unpin and remove this venture"
+                        >
+                          Unpin Venture
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-neutral-500 py-8 text-center italic border border-dashed border-neutral-900 rounded-lg">
+                  No milestones pinned yet. Fill out the form above to pin your first venture.
+                </div>
+              )}
             </div>
           </div>
         )}

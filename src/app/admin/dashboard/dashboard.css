@@ -258,3 +258,62 @@
 .hidden {
   display: none;
 }
+
+/* Venture Admin List Styles */
+.venture-admin-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  background: #040404;
+  border: 1px solid #161616;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.venture-admin-card:hover {
+  border-color: #262626;
+  background: #070707;
+}
+
+.venture-admin-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.venture-admin-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #a3a3a3;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.venture-admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-unpin-venture {
+  background: rgba(255, 68, 68, 0.08);
+  color: #ff5555;
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-unpin-venture:hover {
+  background: rgba(255, 68, 68, 0.18);
+  border-color: #ff5555;
+  color: #ff7777;
+}

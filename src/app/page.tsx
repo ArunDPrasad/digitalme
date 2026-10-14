@@ -21,7 +21,6 @@ export default async function Home() {
   const bio = settings?.bio || "Building the Next5. Stay Sharp 🧡";
   const ventureCount = settings?.ventures_count || 5;
   const experienceYears = settings?.experience_years || 10;
-  const phone = settings?.phone || "071 332 0031";
   const email = settings?.email || "contact@arundprasad.online";
 
   return (
@@ -82,26 +81,16 @@ export default async function Home() {
             </div>
 
             <div className="profile-description">
-              <p className="mb-4">
+              <p className="profile-role">
                 <b>Entrepreneur</b>
               </p>
               <div 
-                className="whitespace-pre-line leading-relaxed text-neutral-300"
+                className="profile-bio-text"
                 dangerouslySetInnerHTML={{ __html: bio.replace(/\n/g, '<br/>') }}
               />
-              
-              <div className="flex flex-col gap-2 text-sm text-neutral-500 mt-6">
-                <Link href="https://www.arundprasad.online" className="hover:text-accent transition-colors">
-                  🔗 https://www.arundprasad.online
-                </Link>
-                <div className="flex gap-4">
-                  <span>💼 Technological Architect</span>
-                  <span>📞 {phone}</span>
-                </div>
-              </div>
             </div>
 
-            <div className="flex gap-4 mt-8">
+            <div className="profile-actions">
               <Link href="#ventures" className="btn-primary">View Milestones</Link>
               <Link href={`mailto:${email}`} className="btn-secondary">Message</Link>
             </div>
@@ -111,10 +100,10 @@ export default async function Home() {
 
       {/* Ventures Section (Pinned Milestones) */}
       <section id="ventures" className="section-container">
-        <div className="flex items-center gap-4 mb-10">
-          <div className="h-px bg-neutral-800 flex-1"></div>
-          <h2 className="text-sm font-bold tracking-widest uppercase text-neutral-500">Pinned Milestones</h2>
-          <div className="h-px bg-neutral-800 flex-1"></div>
+        <div className="section-divider">
+          <div className="divider-line"></div>
+          <h2 className="divider-title">Pinned Milestones</h2>
+          <div className="divider-line"></div>
         </div>
 
         <div className="ventures-grid">
